@@ -1,0 +1,25 @@
+model_name: 'inceptionv4' # drnetq, inceptionv3, inceptionv4, resnet18, resnet152, vgg13, vgg19, swin_custom, swin_tiny, nat_mini, nat_custom
+
+paths:
+  train_imgdir: 'dataset/D2/train'
+  val_imgdir: 'dataset/D2/val'
+  test_imgdir: 'dataset/D2/test'
+
+hyperparameters:
+  loss_fn: 'cross_entropy'
+  optimizer: 'adam' # sgd
+  batch_size: 64
+  num_epochs: 100
+  lr: 0.001
+  b1: 0.85
+  b2: 0.999
+  weight_decay: 0.001
+  scheduler: 
+    type: 'step' # cosine, exponential
+    gamma: 0.6
+    step: 10
+  n_gpus: 2
+
+general:
+  pretrain: True
+  n_classes: 2
