@@ -29,8 +29,8 @@ class Inceptionv4:
         x = base_model.output
         x = AveragePooling2D((8,8), padding='valid')(x) 
         x = Flatten()(x)
-        x = Dense(units=256, activation='relu')(x)
-        x = Dropout(self.dropout_prob)(x)
+        # x = Dense(units=256, activation='relu')(x)
+        # x = Dropout(self.dropout_prob)(x)
         if self.n_classes > 1:
             predictions = Dense(self.n_classes, activation="softmax")(x)
         else:

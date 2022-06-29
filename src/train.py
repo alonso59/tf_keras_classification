@@ -17,12 +17,11 @@ import tensorflow as tf
 import pandas as pd
 import datetime
 import os
-from keras.callbacks import TensorBoard, EarlyStopping
+from keras.callbacks import TensorBoard, EarlyStopping, Callback
 from models import ClassificationModels
 import logging
-from models import ClassificationModels
 import sys
-from keras.callbacks import Callback
+
 
 def main(cfg):
     
@@ -51,24 +50,12 @@ def main(cfg):
     pretrain = general['pretrain']
     name_model = cfg['model_name']
 
-    files_train = []
-    files_val = []
-    for _, _,files in os.walk(train_imgdir):
-        for file in files:
-                files_train.append(file)
-    for _, _,files in os.walk(val_imgdir):
-        for file in files:
-            files_val.append(file)
-
-    nb_train_samples = len(files_train)
-    nb_validation_samples = len(files_val)
-
     models = ClassificationModels(n_classes=n_classes, pretrain=pretrain, logger=print)
     model = models.model_builder(name_model) # 
     _, w, h, _ = model.input_shape
 
     #********************************* compile ********************************************
-    opt = optimizers.Adam(learning_rate=lr, beta_1=B1, beta_2=B2)
+    opt = optimizers.Adam(learning_rate=lr, beta_1=B1, beta_2=B2, decay=weight_decay)
     model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
     # **************************** dataset loader generator *******************************
     train_datagen = ImageDataGenerator(rescale=1. / 255, horizontal_flip=True, vertical_flip=True, zoom_range=0.2, rotation_range=30)
@@ -87,24 +74,48 @@ def main(cfg):
         seed=42,
         target_size=(w, h),
         class_mode="categorical")
+
+    steps_training = train_generator.n // train_generator.batch_size
+    steps_validation = validation_generator.n // validation_generator.batch_size
+    IMAGE_CLASSES = ['R012', 'R34']
+    
+    # Create a TF dataset based on the Keras image data generator
+    training_dataset = tf.data.Dataset.from_generator(
+        lambda: train_generator,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=([None, w, h, 3], [None, len(IMAGE_CLASSES)]),
+    )
+
+    # Create a TF dataset based on the Keras image data generator
+    validation_dataset = tf.data.Dataset.from_generator(
+        lambda: validation_generator,
+        output_types=(tf.float32, tf.float32),
+        output_shapes=([None, w, h, 3], [None, len(IMAGE_CLASSES)]),
+    )
+
+    # Set the sharding policy to DATA
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+
+    training_dataset.with_options(options)
+    validation_dataset.with_options(options)
+    
     #***************************** callbacks *****************************
     checkpoint = ModelCheckpoint(checkpoint_path + name_model + '_best.hdf5', monitor='val_loss', 
                                 verbose=1, save_best_only=True,
                                 save_weights_only=False, 
                                 mode='auto', period=1)
     
-    tensorboard_callback = TensorBoard(log_dir=version + 'tensorboard/', write_graph=False, write_images=True)
+    tensorboard_callback = TensorBoard(log_dir=version + 'tensorboard/', write_graph=True, write_images=True)
     #***************************** Fiting *****************************
     history = model.fit(
-        train_generator, 
-        use_multiprocessing=True, 
-        workers=12,
+        training_dataset, 
         epochs=num_epochs,
-        validation_data=validation_generator,
+        validation_data=validation_dataset,
         verbose=1,
         shuffle=True,
-        steps_per_epoch=nb_train_samples // batch_size,
-        validation_steps=nb_validation_samples // batch_size,
+        steps_per_epoch=steps_training,
+        validation_steps=steps_validation,
         callbacks=[checkpoint, tensorboard_callback]
     )
     #uncoment next both lines if you don't use callbacks
@@ -174,8 +185,7 @@ def initialize(cfg):
                         )
                         
     logger = logging.getLogger()
-    logger.addHandler(logging.FileHandler(version + "info.log"))
-    logger.addHandler(logging.StreamHandler(sys.stdout))
+
     return logger, checkpoint_path, version
 
 def create_dir(path):
