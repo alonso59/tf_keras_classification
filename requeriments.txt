@@ -1,0 +1,22 @@
+conda install -c conda-forge cudatoolkit=11.3 cudnn=8.2.0
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+
+mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+
+echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+
+pip install --upgrade pip
+
+pip install tensorflow-gpu
+
+pip install scikit-learn
+
+pip install pandas
+
+pip install seaborn
+
+pip install matplotlib
+
+pip install pyyaml
+
+conda install tensorboard

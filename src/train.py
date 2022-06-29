@@ -93,7 +93,7 @@ def main(cfg):
                                 save_weights_only=False, 
                                 mode='auto', period=1)
     
-    tensorboard_callback = TensorBoard(log_dir=version + 'tensorboard/', write_graph=True, write_images=True)
+    tensorboard_callback = TensorBoard(log_dir=version + 'tensorboard/', write_graph=False, write_images=True)
     #***************************** Fiting *****************************
     history = model.fit(
         train_generator, 

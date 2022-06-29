@@ -19,7 +19,7 @@ def main(cfg):
   """
   test_dir = paths['test_imgdir']
 
-  model_file = 'logs/2022-06-29_00_13_25/checkpoints/inceptionv4_best.hdf5'
+  model_file = 'logs/2022-06-29_03_27_08/checkpoints/inceptionv4_best.hdf5'
 
   Name_model = os.path.join(os.path.split(model_file)[0], cfg['model_name'])
 
